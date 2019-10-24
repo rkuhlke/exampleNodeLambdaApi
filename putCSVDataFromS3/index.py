@@ -1,14 +1,32 @@
 import boto3
 
-s3_client = boto3.client('s3')
+s3 = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('example')
 
 
 def lambda_handler(event, context):
-    bucket_name = event['Records'][0]['s3']['bucket']['name']
-    s3_filename = event['Records'][0]['s3']['object']['key']
-    resp = s3_client.get_object(Bucket=bucket_name, Key=s3_filename)
-    data = resp['Body'].read().decode('utf-8')
-    employees = data.split('\\n')
-    for emp in employees:
-        print(employees)
-        # adding to dynamodb
+    name = event['Records'][0]['s3']['bucket']['name']
+    print(name)
+    key = event['Records'][0]['s3']['object']['key']
+    print(key)
+    obj = s3.get_object(Bucket=name, Key=key)
+
+    rows = obj['Body'].read().decode('utf-8').split('\n')
+
+    for row in rows:
+        print(row)
+        
+        try:
+            table.put_item(
+                Item = {
+                    "firstname": row.split(',')[0],
+                    "lastname": row.split(',')[1],
+                    "address": row.split(',')[2],
+                    "county": row.split(',')[3],
+                    "state": row.split(',')[4],
+                    "zip": row.split(',')[5]
+                })
+        except Exception as e:
+            print(e)
+                
